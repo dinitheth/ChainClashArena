@@ -11,6 +11,8 @@ Chain Clash is a strategic battle game where:
 - **Cross-chain messages** handle all player interactions (moves, attacks, results)
 - **AI bots** can play autonomously using local agents
 
+> **📖 Important**: See [`IMPLEMENTATION_NOTES.md`](IMPLEMENTATION_NOTES.md) for detailed information about Linera's Service vs Contract architecture and how to integrate the frontend with blockchain operations. The backend proxy server in `backend_proxy/` bridges the UI with Linera operations.
+
 ## Linera Features Demonstrated
 
 This project showcases comprehensive usage of Linera SDK features:
@@ -77,6 +79,9 @@ chain-clash/
 │   └── game_service/           # Service binary (WASM)
 │       ├── src/lib.rs          # GraphQL API
 │       └── Cargo.toml
+├── backend_proxy/              # HTTP server to bridge frontend ↔ operations
+│   ├── server.js               # Express server wrapping linera CLI
+│   └── README.md
 ├── frontend/                   # React + TypeScript UI
 │   ├── src/
 │   │   ├── App.tsx
@@ -88,8 +93,10 @@ chain-clash/
 ├── tools/
 │   ├── deploy_scripts.sh       # Deployment automation
 │   └── local_setup.sh          # Local network setup
-└── tests/
-    └── integration_tests.rs    # Unit tests
+├── tests/
+│   └── integration_tests.rs    # Unit tests
+├── IMPLEMENTATION_NOTES.md     # ⭐ Architecture guide
+└── README.md
 ```
 
 ## Prerequisites

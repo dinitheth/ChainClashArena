@@ -1,0 +1,14 @@
+{
+  "name": "chain-clash-backend-proxy",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "HTTP proxy server for Chain Clash to bridge frontend with Linera operations",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
