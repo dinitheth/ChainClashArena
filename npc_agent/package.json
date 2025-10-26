@@ -1,0 +1,14 @@
+{
+  "name": "chain-clash-npc-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI bot agent for Chain Clash game on Linera",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "graphql": "^16.8.0",
+    "graphql-request": "^6.1.0"
+  }
+}

@@ -1,0 +1,97 @@
+name: Chain Clash CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.86.0
+        target: wasm32-unknown-unknown
+        override: true
+        components: rustfmt, clippy
+    
+    - name: Install Protobuf
+      run: |
+        curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v21.11/protoc-21.11-linux-x86_64.zip
+        unzip protoc-21.11-linux-x86_64.zip -d $HOME/.local
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: Build contract
+      run: |
+        cd backend/game_contract
+        cargo build --release --target wasm32-unknown-unknown
+    
+    - name: Build service
+      run: |
+        cd backend/game_service
+        cargo build --release --target wasm32-unknown-unknown
+    
+    - name: Run tests
+      run: cargo test --workspace
+    
+    - name: Check WASM artifacts
+      run: |
+        ls -lh backend/target/wasm32-unknown-unknown/release/game_contract.wasm
+        ls -lh backend/target/wasm32-unknown-unknown/release/game_service.wasm
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm install
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Lint frontend
+      run: |
+        cd frontend
+        npm run lint
+
+  agent-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install agent dependencies
+      run: |
+        cd npc_agent
+        npm install
