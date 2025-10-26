@@ -1,0 +1,313 @@
+Chain Clash — PRD (High level)
+
+Goal: a turn/command-based PvP strategy arena where every player has a personal microchain for instant moves; each match runs on a temporary game microchain spawned by a Tournament app chain. Uses Linera microchains, cross-chain messaging, Views, contract+service split, GraphQL node service and agentic NPCs.
+
+Core features (must-haves for Buildathon demo)
+
+Player microchain operations to propose actions (deploy, move, attack).
+
+Temporary Game microchain per match with on-chain deterministic game logic.
+
+Tournament app chain that spawns game chains and manages rankings/prizes.
+
+Cross-chain messages for attacks/trades/results.
+
+GraphQL service exposing game state and move mutations.
+
+Local Linera client notifications for real-time UI updates.
+
+Agentic NPC (local agent) that can play as a bot by signing operations.
+
+Public GitHub repo, README, demo video, changelog for submission.
+
+Tech stack (exact)
+
+Backend / Smart contract: Rust + linera-sdk (use version used by Testnet; example in docs: 0.15.3)
+
+Views & storage: linera-views crate
+
+Service (GraphQL): async-graphql inside linera-sdk service binary
+
+Frontend: React + TypeScript + Apollo (GraphQL client) + Tailwind (UI)
+
+Local dev: linera CLI tools (linera-service, linera-storage-service) and linera binary (client)
+
+Build: cargo (Rust), wasm32-unknown-unknown target
+
+Agent (NPC): node.js or Rust local process running agent logic (minimax/ML model) — signs moves with player wallet
+
+CI / Tests: GitHub Actions for Rust tests and wasm build (optional)
+
+Demo recording: OBS or any screen recorder
+
+Setup — step by step (first things first)
+
+Follow these exact commands (Linux/macOS examples; adapt to Windows as needed).
+
+Install Rust & wasm target
+
+# install rustup (if not present)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# add wasm target
+rustup target add wasm32-unknown-unknown
+
+
+Install Protobuf (protoc)
+Download protoc (example from docs):
+
+# example (Linux x86_64)
+curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v21.11/protoc-21.11-linux-x86_64.zip
+unzip protoc-21.11-linux-x86_64.zip -d $HOME/.local
+export PATH="$HOME/.local/bin:$PATH"
+
+
+Install linera CLI / services (from crates)
+
+# install linera tools matching Testnet from docs (example v0.15.3)
+cargo install --locked linera-storage-service@0.15.3
+cargo install --locked linera-service@0.15.3
+
+# add linera-sdk as dependency in your project (Cargo.toml)
+# cargo add linera-sdk@0.15.3
+
+
+Use the same versions referenced in the Linera manual you uploaded to avoid compatibility problems.
+
+Optional: clone linera-protocol repo for examples
+
+git clone https://github.com/linera-io/linera-protocol.git
+cd linera-protocol
+# checkout the testnet branch corresponding to the SDK version if needed
+
+Project scaffold (what your repo looks like)
+
+Create a repo chain-clash with this structure:
+
+chain-clash/
+├─ backend/
+│  ├─ game_contract/         # Cargo crate (WASM) - contract binary
+│  │  ├─ src/lib.rs          # ABI + types
+│  │  ├─ src/state.rs
+│  │  ├─ src/contract.rs
+│  │  └─ Cargo.toml
+│  └─ game_service/          # Cargo crate (WASM) - service binary
+│     ├─ src/service.rs
+│     └─ Cargo.toml
+├─ tools/
+│  └─ deploy_scripts.sh
+├─ frontend/
+│  ├─ package.json
+│  ├─ src/
+│  └─ README.md
+├─ npc_agent/
+│  ├─ agent.js or agent.rs
+├─ tests/
+│  └─ integration_tests.rs
+├─ README.md
+└─ .github/workflows/ci.yml
+
+Contract & Service design (detailed)
+1) State (use Views)
+
+Implement Views per SDK:
+
+RegisterView<Vec<Owner>> players
+
+RegisterView<u8> turn index
+
+RegisterView<String> compressed board state (or a compact struct)
+
+LogView<Move> move_log
+
+MapView<Owner, u64> resources / HP / cooldowns
+
+RegisterView<Option<Result>> game_result
+
+(Use RootView derive macros as in docs.)
+
+2) Operation types (what players schedule on their chains)
+pub enum Operation {
+  RequestMatch { tournament_id: ChainId, params: MatchParams },
+  MakeMove { game_chain: ChainId, move_data: Move },
+  Surrender { game_chain: ChainId },
+}
+
+3) Message types (sent between chains)
+pub enum Message {
+  JoinGame { player: Owner },
+  MoveMessage { player: Owner, move_data: Move },
+  AttackMessage { from: Owner, to_chain: ChainId, attack: AttackPayload },
+  ResolveGame { result: GameResult }
+}
+
+4) Contract methods (important hooks)
+
+instantiate: init game with players, seed, parameters
+
+execute_operation: validate origin and create outgoing messages as needed (prepare_message().send_to(...))
+
+execute_message: apply incoming moves/attacks, update Views, push result messages to tournament chain if game ends
+
+store: save views
+
+Use authentication forwarding when the message must preserve the signer.
+
+5) Service GraphQL API
+
+Service exposes queries/mutations:
+
+Query: gameState(chainId) { board, turn, moveLog, resources, result }
+
+Mutation: submitMove(gameChain, move) -> serialized operation or schedule an operation via runtime
+
+Query: lobby(tournamentId) -> list of open matches
+
+Mutation: createMatch(params) -> request the tournament chain to open a game chain
+
+Implement GraphQL resolvers using async-graphql the way Linera examples do.
+
+Development workflow & local testing
+
+Start a local dev net + faucet (run in project root):
+
+linera net up --with-faucet --faucet-port 8080
+
+
+Create a developer wallet & request a chain
+
+linera wallet init --faucet http://localhost:8080
+linera wallet request-chain --faucet http://localhost:8080
+
+
+Build WASM artifacts
+
+cd backend/game_contract
+cargo build --release --target wasm32-unknown-unknown
+cd ../game_service
+cargo build --release --target wasm32-unknown-unknown
+
+
+Publish & create (publish bytecode + instantiate)
+Example (local):
+
+linera publish-and-create \
+  target/wasm32-unknown-unknown/release/game_contract.wasm \
+  target/wasm32-unknown-unknown/release/game_service.wasm \
+  --json-argument '{"initial_seed": 42, "params": {...}}'
+
+
+Start the service to expose GraphQL:
+
+linera service --port 8080
+# GraphiQL -> http://localhost:8080/
+# App GraphQL endpoint -> http://localhost:8080/chains/<chain-id>/applications/<app-id>
+
+
+Frontend: point Apollo client to the service endpoint and use mutations/queries to interact.
+
+Agent NPC: run local agent that calls the same GraphQL mutation or constructs & signs operations and schedules them via linera CLI.
+
+Testing plan
+
+Unit tests (Rust) for execute_operation / execute_message logic (validate moves, resource updates).
+
+Integration tests: spin up a local net in CI and simulate two player wallets sending operations and messages to a game chain.
+
+Load/Stress test: script to spawn many temporary game chains locally to show horizontal scaling. (Prove concept with logs + validator metrics.)
+
+Security tests: test message reordering, message bounce handling, authenticated forwarding, and edge cases for rejected messages.
+
+Anti-cheat & integrity
+
+Keep canonical move_log on the game chain; store hashed history for verifiability.
+
+Use with_authentication() on messages forwarded from players to preserve signer provenance.
+
+Time control enforcement: derive authoritative timing from block inclusion times, or store authorized clocks on game chains (careful with drift).
+
+Optionally: dispute resolution via tournament chain where verifiable replay is possible.
+
+Agentic NPC design
+
+Local-only agent (recommended): runs in the user environment (node or wasm) and uses the player private key to sign moves.
+
+Agent flow: poll GraphQL game state → compute move via AI/minimax → sign & schedule move operation.
+
+For ML-based agents, consider light models (ONNX or tiny NN) that can run client-side (no central server).
+
+Document agent as a pluggable module — so users can run human vs bot demos easily.
+
+Deployment to Linera Testnet (sample commands)
+
+(Replace URLs with current Testnet faucet from Linera docs.)
+
+# create testnet wallet + chain (Testnet Conway example from manual)
+linera wallet init --faucet https://faucet.testnet-conway.linera.net
+linera wallet request-chain --faucet https://faucet.testnet-conway.linera.net
+
+# build release wasm
+cargo build --release --target wasm32-unknown-unknown
+
+# publish & instantiate (example)
+linera publish-and-create \
+  target/wasm32-unknown-unknown/release/game_contract.wasm \
+  target/wasm32-unknown-unknown/release/game_service.wasm \
+  --json-argument '{"players": ["...","..."], "seed": 12345}'
+
+# run service (bind to port for frontend/dev)
+linera service --port 8080
+
+Monitoring & metrics to collect (demo-friendly)
+
+Number of active microchains (game chains spawned) during demo.
+
+Average latency from move submission to block inclusion (should be < 0.5s typical).
+
+Validator worker CPU/memory when running many chains (to demonstrate elastic scaling).
+
+Game chain move throughput and message queue lengths.
+
+Demo checklist (what to show to judges)
+
+Start a tournament and create a match (show open-chain or publish flow).
+
+Two players make moves — show instant UI update via GraphQL + push notifications.
+
+Show cross-chain messages being delivered (logs or GraphiQL inspector).
+
+Spawn multiple matches to show scalability (many temporary chains).
+
+Demonstrate an AI agent playing and signing moves locally.
+
+Show repository, README, deployment steps and changelog.
+
+Show how prizes/results are posted to tournament chain when match resolves.
+
+Buildathon submission checklist (exact items)
+
+Public GitHub repo with:
+
+README with setup & deploy steps (linera net up, linera publish-and-create, linera service)
+
+backend/ Rust crates for contract & service (compilable to wasm)
+
+frontend/ React app pointing to GraphQL service
+
+npc_agent/ example bot (how to run it)
+
+Tests and CI config
+
+Demo video (3–6 minutes): show matchmaking → match → moves → resolution → spawn many matches.
+
+Notes on which Linera features you used (explicit mapping: microchains, cross-chain messaging, views, GraphQL service, publish-and-create, notifications).
+
+Team member names + contact (Telegram & X) and changelog for wave submissions.
+
+Risks & mitigation
+
+SDK version mismatch — align on the same linera-sdk/testnet branch used in docs; pin versions in Cargo.toml.
+
+Complex deterministic logic — keep game engine deterministic and small; heavy computations off-chain and only final results committed.
+
+Wallet UX — prefer local developer wallet and linera service for quick demo; optionally integrate WalletConnect when available on testnet.
