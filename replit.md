@@ -33,6 +33,8 @@ Chain Clash is a comprehensive turn-based PvP strategy arena game built entirely
 - ✅ Deployment scripts and tooling
 - ✅ Comprehensive documentation
 - ✅ CI/CD pipeline with GitHub Actions
+- ✅ Netlify & Vercel deployment configurations
+- ✅ Ready for web hosting deployment
 
 ## Technical Stack
 - Linera SDK: 0.15.3
@@ -57,15 +59,15 @@ This is a Linera blockchain project requiring:
 - Include deployment scripts and CI/CD
 - Real-time UI with proper state management
 
-## Recent Changes (2025-10-26)
-- Created complete project structure
-- Implemented contract with Views, Operations, Messages
-- Built GraphQL service with queries and mutations
-- Developed React frontend with game board UI
-- Created NPC agent with minimax algorithm
-- Added deployment scripts and documentation
-- Set up CI/CD with GitHub Actions
-- Documented all Linera features used
+## Recent Changes (2025-10-27)
+- ✅ Added Netlify deployment configuration (netlify.toml)
+- ✅ Added Vercel deployment configuration (vercel.json)
+- ✅ Created comprehensive deployment guides:
+  - DEPLOYMENT.md: Complete deployment guide with troubleshooting
+  - QUICK_START_DEPLOY.md: 5-minute quick start for hosting
+- ✅ Updated frontend environment variable examples
+- ✅ Added deployment sections to README
+- ✅ Frontend ready for one-click deployment to hosting platforms
 
 ## Notes
 - Project follows Linera SDK 0.15.3 (Testnet Conway) conventions

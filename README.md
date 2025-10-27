@@ -204,6 +204,41 @@ npm install
 GRAPHQL_ENDPOINT=http://localhost:8080/chains/<your-chain-id>/applications/<app-id> npm start
 ```
 
+## 🚀 Frontend Deployment (Netlify/Vercel)
+
+You can deploy the frontend UI to Netlify or Vercel for easy access and demonstration!
+
+### Quick Deploy to Netlify
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start)
+
+1. Push code to GitHub
+2. Import repository on Netlify
+3. Auto-detects settings from `netlify.toml`
+4. Deploy! ✨
+
+### Quick Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+
+1. Push code to GitHub
+2. Import repository on Vercel
+3. Auto-detects settings from `vercel.json`
+4. Deploy! ✨
+
+### Environment Variables (Optional)
+
+To connect to a live Linera network, add these environment variables:
+
+```bash
+VITE_GRAPHQL_ENDPOINT=https://testnet-conway.linera.net/chains/<CHAIN_ID>/applications/<APP_ID>
+VITE_BACKEND_PROXY_URL=https://your-backend-proxy.com
+```
+
+**📖 See [`DEPLOYMENT.md`](DEPLOYMENT.md) for complete deployment guide**
+
+---
+
 ## Deployment to Testnet (Conway)
 
 ### 1. Create Testnet Wallet
