@@ -1,4 +1,4 @@
-# Chain Clash ⚔️
+# Chain Clash Arena ⚔️
 
 A turn-based PvP strategy arena built on **Linera microchains**, demonstrating the full power of Linera's protocol features including microchains, cross-chain messaging, Views, GraphQL services, and real-time notifications.
 
