@@ -432,7 +432,7 @@ cargo install --locked linera-service@0.15.3
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License
 
 ## Built With
 
